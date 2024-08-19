@@ -275,7 +275,14 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
 
     @Override
     public InventoryView getOpenInventory() {
-        return getHandle().containerMenu.getBukkitView();
+        //Ketting start
+        try {
+            org.kettingpowered.ketting.utils.InventoryViewHelper.setContainerOwner(getHandle());
+            return getHandle().containerMenu.getBukkitView();
+        } finally {
+            org.kettingpowered.ketting.utils.InventoryViewHelper.clearContainerOwner();
+        }
+        //Ketting end
     }
 
     @Override
@@ -305,6 +312,7 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
             }
         }
 
+        org.kettingpowered.ketting.utils.InventoryViewHelper.setContainerOwner(player); //Ketting
         MenuType<?> container = CraftContainer.getNotchInventoryType(inventory);
         if (iinventory instanceof MenuProvider) {
             getHandle().openMenu(iinventory);
@@ -316,7 +324,9 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
             return null;
         }
         getHandle().containerMenu.checkReachable = false;
-        return getHandle().containerMenu.getBukkitView();
+        org.bukkit.inventory.InventoryView returnValue = getHandle().containerMenu.getBukkitView();
+        org.kettingpowered.ketting.utils.InventoryViewHelper.clearContainerOwner();
+        return returnValue;
     }
 
     private static void openCustomInventory(Inventory inventory, ServerPlayer player, MenuType<?> windowType) {

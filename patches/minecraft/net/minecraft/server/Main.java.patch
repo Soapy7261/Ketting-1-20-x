@@ -9,7 +9,7 @@
        OptionSpec<Void> optionspec2 = optionparser.accepts("demo");
        OptionSpec<Void> optionspec3 = optionparser.accepts("bonusChest");
        OptionSpec<Void> optionspec4 = optionparser.accepts("forceUpgrade");
-@@ -80,13 +_,51 @@
+@@ -80,13 +_,52 @@
        OptionSpec<Void> optionspec12 = optionparser.accepts("jfrProfile");
        OptionSpec<Path> optionspec13 = optionparser.accepts("pidFile").withRequiredArg().withValuesConvertedBy(new PathConverter());
        OptionSpec<String> optionspec14 = optionparser.nonOptions();
@@ -30,6 +30,7 @@
 +      //Ketting start - Initialize Ketting
 +      org.kettingpowered.ketting.core.Ketting ketting = org.kettingpowered.ketting.core.Ketting.init(SharedConstants.getCurrentVersion().getName());
 +      ketting.registerAdapter(new org.kettingpowered.ketting.adapters.Forge_1_20_2_Adapter(), new org.kettingpowered.ketting.adapters.Bukkit_1_20_2_Adapter());
++      org.kettingpowered.ketting.common.betterui.BetterUI.name = org.kettingpowered.ketting.internal.KettingConstants.NAME;
 +      //Ketting end
  
        try {
@@ -208,7 +209,7 @@
              }
           };
           thread.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(LOGGER));
-@@ -210,6 +_,64 @@
+@@ -210,6 +_,65 @@
        }
  
     }
@@ -244,6 +245,7 @@
 +              .ofType(File.class)
 +              .defaultsTo(new File("plugins"))
 +              .describedAs("Plugin directory");
++      parser.acceptsAll(java.util.Arrays.asList("log-strip-color"), "Strips color codes from log file");
 +   }
 +
 +   private static void bukkitSettings(OptionSet options) {

@@ -1,14 +1,5 @@
 --- a/net/minecraft/world/entity/npc/Villager.java
 +++ b/net/minecraft/world/entity/npc/Villager.java
-@@ -145,7 +_,7 @@
-    }
- 
-    public Brain<Villager> getBrain() {
--      return (Brain<Villager>)super.getBrain();
-+      return (Brain<Villager>) super.getBrain(); // CraftBukkit - decompile error
-    }
- 
-    protected Brain.Provider<Villager> brainProvider() {
 @@ -205,6 +_,17 @@
        return this.assignProfessionWhenSpawned;
     }
@@ -27,15 +18,14 @@
     protected void customServerAiStep() {
        this.level().getProfiler().push("villagerBrain");
        this.getBrain().tick((ServerLevel)this.level(), this);
-@@ -221,7 +_,7 @@
+@@ -221,6 +_,7 @@
                 this.increaseProfessionLevelOnUpdate = false;
              }
  
--            this.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 200, 0));
-+            this.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 200, 0), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.VILLAGER_TRADE); // CraftBukkit
++            this.prepareAddEffect(org.bukkit.event.entity.EntityPotionEffectEvent.Cause.VILLAGER_TRADE); //Ketting
+             this.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 200, 0));
           }
        }
- 
 @@ -256,7 +_,7 @@
  
     public InteractionResult mobInteract(Player p_35472_, InteractionHand p_35473_) {
@@ -103,21 +93,20 @@
           LOGGER.info("Villager {} was struck by lightning {}.", this, p_35410_);
           Witch witch = EntityType.WITCH.create(p_35409_);
           if (witch != null) {
-@@ -736,7 +_,13 @@
+@@ -736,6 +_,13 @@
              }
  
              witch.setPersistenceRequired();
--            p_35409_.addFreshEntityWithPassengers(witch);
 +         net.minecraftforge.event.ForgeEventFactory.onLivingConvert(this, witch);
 +            // CraftBukkit start
 +            if (org.bukkit.craftbukkit.v1_20_R2.event.CraftEventFactory.callEntityTransformEvent(this, witch, org.bukkit.event.entity.EntityTransformEvent.TransformReason.LIGHTNING).isCancelled()) {
 +               return;
 +            }
-+            p_35409_.addFreshEntityWithPassengersBukkit(witch, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.LIGHTNING);
 +            // CraftBukkit end
++            p_35409_.prepareAddFreshEntityWithPassengers(org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.LIGHTNING);
+             p_35409_.addFreshEntityWithPassengers(witch);
              this.releaseAllPois();
              this.discard();
-          } else {
 @@ -824,7 +_,7 @@
              return p_186293_.wantsToSpawnGolem(p_35399_);
           }).limit(5L).collect(Collectors.toList());

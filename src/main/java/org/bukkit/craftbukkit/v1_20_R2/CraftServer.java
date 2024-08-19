@@ -953,7 +953,7 @@ public final class CraftServer implements Server {
 
         org.spigotmc.SpigotConfig.init((File) console.options.valueOf("spigot-settings")); // Spigot
         for (ServerLevel world : console.getAllLevels()) {
-            world.serverLevelData.setDifficulty(config.difficulty);
+            world.getServerLevelData().setDifficulty(config.difficulty); //Ketting - don't enforce PrimaryLevelData
             world.setSpawnSettings(config.spawnMonsters, config.spawnAnimals);
 
             for (SpawnCategory spawnCategory : SpawnCategory.values()) {
@@ -1190,7 +1190,7 @@ public final class CraftServer implements Server {
             worldKey = ResourceKey.create(Registries.DIMENSION, new ResourceLocation(name.toLowerCase(java.util.Locale.ENGLISH)));
         }
 
-        ServerLevel internal = ServerLevel.init(console, console.executor, worldSession, worlddata, worldKey, worlddimension, getServer().progressListenerFactory.create(11),
+        ServerLevel internal = new ServerLevel(console, console.executor, worldSession, worlddata, worldKey, worlddimension, getServer().progressListenerFactory.create(11),
                 worlddata.isDebugWorld(), j, creator.environment() == Environment.NORMAL ? list : ImmutableList.of(), true, console.overworld().getRandomSequences(), creator.environment(), generator, biomeProvider);
         internal.keepSpawnInMemory = creator.keepSpawnInMemory();
 
@@ -1433,8 +1433,11 @@ public final class CraftServer implements Server {
         }
 
         // Call Bukkit event to check for matrix/result changes.
+        org.kettingpowered.ketting.utils.InventoryViewHelper.setContainerOwner(craftPlayer.getHandle());//Ketting
         net.minecraft.world.item.ItemStack result = CraftEventFactory.callPreCraftEvent(inventoryCrafting, craftResult, itemstack, container.getBukkitView(), recipe.map(RecipeHolder::toBukkitRecipe).orElse(null) instanceof RepairItemRecipe);
+        org.kettingpowered.ketting.utils.InventoryViewHelper.clearContainerOwner(); //Ketting
 
+        
         return createItemCraftResult(CraftItemStack.asBukkitCopy(result), inventoryCrafting, craftWorld.getHandle());
     }
 
@@ -2091,7 +2094,7 @@ public final class CraftServer implements Server {
 
     @Override
     public boolean isPrimaryThread() {
-        return Thread.currentThread().equals(console.serverThread) || console.hasStopped() || !org.spigotmc.AsyncCatcher.enabled; // All bets are off if we have shut down (e.g. due to watchdog)
+        return Thread.currentThread().equals(console.serverThread) || console.hasStopped();// || !org.spigotmc.AsyncCatcher.enabled; // All bets are off if we have shut down (e.g. due to watchdog) //Ketting - we don't use the async catcher
     }
 
     @Override

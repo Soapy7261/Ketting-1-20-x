@@ -1,11 +1,10 @@
 --- a/net/minecraft/world/level/block/entity/LecternBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/LecternBlockEntity.java
-@@ -25,12 +_,59 @@
+@@ -25,12 +_,58 @@
  import net.minecraft.world.phys.Vec2;
  import net.minecraft.world.phys.Vec3;
  
 -public class LecternBlockEntity extends BlockEntity implements Clearable, MenuProvider {
-+
 +public class LecternBlockEntity extends BlockEntity implements Clearable, MenuProvider, CommandSource { // CraftBukkit - CommandSource
     public static final int DATA_PAGE = 0;
     public static final int NUM_DATA = 1;
@@ -66,11 +65,10 @@
           }
        }
  
--      public void setItem(int p_59585_, ItemStack p_59586_) {
 +      // CraftBukkit start
-+      public void setItem(int i, ItemStack itemstack) {
-+         if (i == 0) {
-+            LecternBlockEntity.this.setBook(itemstack);
+       public void setItem(int p_59585_, ItemStack p_59586_) {
++         if (p_59585_ == 0) {
++            LecternBlockEntity.this.setBook(p_59586_);
 +            if (LecternBlockEntity.this.getLevel() != null) {
 +               LecternBlock.resetBookState(null, LecternBlockEntity.this.getLevel(), LecternBlockEntity.this.getBlockPos(), LecternBlockEntity.this.getBlockState(), LecternBlockEntity.this.hasBook());
 +            }
@@ -137,12 +135,14 @@
     }
  
     public boolean onlyOpCanSetNbt() {
-@@ -210,7 +_,7 @@
+@@ -210,7 +_,9 @@
     }
  
     public AbstractContainerMenu createMenu(int p_59562_, Inventory p_59563_, Player p_59564_) {
 -      return new LecternMenu(p_59562_, this.bookAccess, this.dataAccess);
-+      return new LecternMenu(p_59562_, this.bookAccess, this.dataAccess, p_59563_); // CraftBukkit
++      LecternMenu menu = new LecternMenu(p_59562_, this.bookAccess, this.dataAccess);
++      menu.player = (org.bukkit.entity.Player) p_59563_.player.getBukkitEntity(); // CraftBukkit
++      return menu;
     }
  
     public Component getDisplayName() {

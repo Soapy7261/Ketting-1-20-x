@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
@@ -874,7 +875,9 @@ public class CraftEventFactory {
 
     public static BlockPos sourceBlockOverride = null; // SPIGOT-7068: Add source block override, not the most elegant way but better than passing down a BlockPos up to five methods deep.
 
+    public static AtomicBoolean handleBlockSpreadUpdate = new AtomicBoolean(true); // Ketting
     public static boolean handleBlockSpreadEvent(LevelAccessor world, BlockPos source, BlockPos target, net.minecraft.world.level.block.state.BlockState block, int flag) {
+        if (source == null) return true; //Ketting
         // Suppress during worldgen
         if (!(world instanceof Level)) {
             world.setBlock(target, block, flag);
@@ -888,7 +891,11 @@ public class CraftEventFactory {
         Bukkit.getPluginManager().callEvent(event);
 
         if (!event.isCancelled()) {
-            state.update(true);
+            // Ketting start - Possibility to move the handle to the vanilla method
+            if (handleBlockFormUpdate.getAndSet(true)) {
+                state.update(true);
+            }
+            // Ketting end
         }
         return !event.isCancelled();
     }
@@ -934,6 +941,7 @@ public class CraftEventFactory {
         victim.expToDrop = event.getDroppedExp();
         victim.newExp = event.getNewExp();
 
+        if(false)//ketting - allow mods to deal with those drops. 
         for (org.bukkit.inventory.ItemStack stack : event.getDrops()) {
             if (stack == null || stack.getType() == Material.AIR) continue;
 
@@ -1284,6 +1292,7 @@ public class CraftEventFactory {
     }
 
     public static boolean callEntityChangeBlockEvent(Entity entity, BlockPos position, net.minecraft.world.level.block.state.BlockState newBlock) {
+        if (entity == null) return true; //Ketting
         return callEntityChangeBlockEvent(entity, position, newBlock, false);
     }
 
@@ -1328,8 +1337,9 @@ public class CraftEventFactory {
         return callInventoryOpenEvent(player, container, false);
     }
 
+    public static AtomicBoolean handleCloseInventory= new AtomicBoolean(true);
     public static AbstractContainerMenu callInventoryOpenEvent(ServerPlayer player, AbstractContainerMenu container, boolean cancelled) {
-        if (player.containerMenu != player.inventoryMenu) { // fire INVENTORY_CLOSE if one already open
+        if (player.containerMenu != player.inventoryMenu && handleCloseInventory.getAndSet(true)) { // fire INVENTORY_CLOSE if one already open
             player.connection.handleContainerClose(new ServerboundContainerClosePacket(player.containerMenu.containerId));
         }
 
@@ -1539,6 +1549,7 @@ public class CraftEventFactory {
 
     public static PlayerLeashEntityEvent callPlayerLeashEntityEvent(Mob entity, Entity leashHolder, net.minecraft.world.entity.player.Player player, InteractionHand enumhand) {
         PlayerLeashEntityEvent event = new PlayerLeashEntityEvent(entity.getBukkitEntity(), leashHolder.getBukkitEntity(), (Player) player.getBukkitEntity(), CraftEquipmentSlot.getHand(enumhand));
+        if (enumhand != null) //Ketting
         entity.level().getCraftServer().getPluginManager().callEvent(event);
         return event;
     }
@@ -1744,6 +1755,7 @@ public class CraftEventFactory {
         return handleBlockFormEvent(world, pos, block, flag, null);
     }
 
+    public static AtomicBoolean handleBlockFormUpdate = new AtomicBoolean(true); // Ketting
     public static boolean handleBlockFormEvent(Level world, BlockPos pos, net.minecraft.world.level.block.state.BlockState block, int flag, @Nullable Entity entity) {
         CraftBlockState blockState = CraftBlockStates.getBlockState(world, pos, flag);
         blockState.setData(block);
@@ -1752,7 +1764,11 @@ public class CraftEventFactory {
         world.getCraftServer().getPluginManager().callEvent(event);
 
         if (!event.isCancelled()) {
-            blockState.update(true);
+            // Ketting start - Possibility to move the handle to the vanilla method
+            if (handleBlockFormUpdate.getAndSet(true)) {
+                blockState.update(true);
+            }
+            // Ketting end
         }
 
         return !event.isCancelled();

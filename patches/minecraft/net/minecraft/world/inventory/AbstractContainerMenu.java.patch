@@ -1,21 +1,6 @@
 --- a/net/minecraft/world/inventory/AbstractContainerMenu.java
 +++ b/net/minecraft/world/inventory/AbstractContainerMenu.java
-@@ -41,11 +_,11 @@
-    public static final int QUICKCRAFT_HEADER_CONTINUE = 1;
-    public static final int QUICKCRAFT_HEADER_END = 2;
-    public static final int CARRIED_SLOT_SIZE = Integer.MAX_VALUE;
--   private final NonNullList<ItemStack> lastSlots = NonNullList.create();
--   public final NonNullList<Slot> slots = NonNullList.create();
-+   public NonNullList<ItemStack> lastSlots = NonNullList.create();
-+   public NonNullList<Slot> slots = NonNullList.create();
-    private final List<DataSlot> dataSlots = Lists.newArrayList();
-    private ItemStack carried = ItemStack.EMPTY;
--   private final NonNullList<ItemStack> remoteSlots = NonNullList.create();
-+   public NonNullList<ItemStack> remoteSlots = NonNullList.create();
-    private final IntList remoteDataSlots = new IntArrayList();
-    private ItemStack remoteCarried = ItemStack.EMPTY;
-    private int stateId;
-@@ -60,6 +_,32 @@
+@@ -60,6 +_,37 @@
     private ContainerSynchronizer synchronizer;
     private boolean suppressRemoteUpdates;
  
@@ -23,8 +8,11 @@
 +   public boolean checkReachable = true;
 +
 +   //Ketting start
++   private @Nullable org.bukkit.inventory.InventoryView bukkitView;
 +   public org.bukkit.inventory.InventoryView getBukkitView(){
-+      return org.kettingpowered.ketting.craftbukkit.CraftStubInventoryView.INSTANCE;
++      if (bukkitView == null)
++         bukkitView = org.kettingpowered.ketting.utils.InventoryViewHelper.createView(this);
++      return bukkitView;
 +   }
 +   //Ketting End
 +   public void transferTo(AbstractContainerMenu other, org.bukkit.craftbukkit.v1_20_R2.entity.CraftHumanEntity player) {
@@ -36,8 +24,10 @@
 +   }
 +   private net.minecraft.network.chat.Component title;
 +   public final net.minecraft.network.chat.Component getTitle() {
-+      com.google.common.base.Preconditions.checkState(this.title != null, "Title not set");
-+      return this.title;
++      // Ketting start
++      //com.google.common.base.Preconditions.checkState(this.title != null, "Title not set");
++      return this.title == null ? net.minecraft.network.chat.Component.empty() : this.title;
++      // Ketting end
 +   }
 +   public final void setTitle(net.minecraft.network.chat.Component title) {
 +      com.google.common.base.Preconditions.checkState(this.title == null, "Title already set");
