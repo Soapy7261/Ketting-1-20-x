@@ -20,14 +20,16 @@
           TestCommand.register(this.dispatcher);
           ResetChunksCommand.register(this.dispatcher);
           RaidCommand.register(this.dispatcher);
-@@ -244,8 +_,17 @@
-       if (p_230943_.includeIntegrated) {
+@@ -245,7 +_,19 @@
           PublishCommand.register(this.dispatcher);
        }
+ 
++      org.kettingpowered.ketting.command.RoutableCommandDispatcher.setFallback(this.dispatcher); //Ketting
++
 +      net.minecraftforge.event.ForgeEventFactory.onCommandRegister(this.forgeDispatcher, p_230943_, p_230944_); //Ketting
 +      // CraftBukkit start
 +   }
- 
++
 +   public Commands() {
        this.dispatcher.setConsumer(ExecutionCommandSource.resultConsumer());
 +      // CraftBukkit end
@@ -38,16 +40,10 @@
     }
  
     public static <S> ParseResults<S> mapSource(ParseResults<S> p_242928_, UnaryOperator<S> p_242890_) {
-@@ -254,19 +_,85 @@
+@@ -254,19 +_,88 @@
        return new ParseResults<>(commandcontextbuilder1, p_242928_.getReader(), p_242928_.getExceptions());
     }
  
--   public void performPrefixedCommand(CommandSourceStack p_230958_, String p_230959_) {
--      p_230959_ = p_230959_.startsWith("/") ? p_230959_.substring(1) : p_230959_;
--      this.performCommand(this.dispatcher.parse(p_230959_, p_230958_), p_230959_);
--   }
--
--   public void performCommand(ParseResults<CommandSourceStack> p_242844_, String p_242841_) {
 +   // CraftBukkit start
 +   public void dispatchServerCommand(CommandSourceStack p_230958_, String p_230959_) {
 +      com.google.common.base.Joiner joiner = com.google.common.base.Joiner.on(" ");
@@ -95,23 +91,27 @@
 +      //Ketting start
 +   }
 +   // CraftBukkit end
-+
-+   public void performPrefixedCommand(CommandSourceStack commandlistenerwrapper, String s) {
-+      // CraftBukkit start
-+      this.performPrefixedCommand(commandlistenerwrapper, s, s);
++   //Ketting start
++   public static final java.util.concurrent.atomic.AtomicReference<String> ketting$performPrefixedCommand$label = new java.util.concurrent.atomic.AtomicReference<>(null);  // Ketting
++   public void performPrefixedCommand(CommandSourceStack p_230958_, String p_230959_, String label) {
++      ketting$performPrefixedCommand$label.set(label);
++      performPrefixedCommand(p_230958_, p_230959_);
 +   }
-+
-+   public void performPrefixedCommand(CommandSourceStack commandlistenerwrapper, String s, String label) {
-+      s = s.startsWith("/") ? s.substring(1) : s;
-+      this.performCommand(this.getCorrectDispatcher(s).unwrap().parse(s, commandlistenerwrapper), s, label);
-+      // CraftBukkit end
++   private void ketting$performPrefixedCommandPass(String s){
++      String label = ketting$performPrefixedCommand$label.get();
++      if (label == null) ketting$performCommand$label.set(s);
++      else ketting$performCommand$label.set(label);
 +   }
-+
-+   public void performCommand(ParseResults<CommandSourceStack> parseresults, String s) {
-+      this.performCommand(parseresults, s, s);
-+   }
-+
-+   public void performCommand(ParseResults<CommandSourceStack> p_242844_, String p_242841_, String label) { // CraftBukkit
++   //Ketting end
+    public void performPrefixedCommand(CommandSourceStack p_230958_, String p_230959_) {
+       p_230959_ = p_230959_.startsWith("/") ? p_230959_.substring(1) : p_230959_;
+-      this.performCommand(this.dispatcher.parse(p_230959_, p_230958_), p_230959_);
++      ketting$performPrefixedCommandPass(p_230959_); //Ketting
++      this.performCommand(this.getCorrectDispatcher(p_230959_).unwrap().parse(p_230959_, p_230958_), p_230959_);
+    }
+ 
++   private final java.util.concurrent.atomic.AtomicReference<String> ketting$performCommand$label = new java.util.concurrent.atomic.AtomicReference<>(null);  // Ketting
+    public void performCommand(ParseResults<CommandSourceStack> p_242844_, String p_242841_) {
        CommandSourceStack commandsourcestack = p_242844_.getContext().getSource();
        commandsourcestack.getServer().getProfiler().push(() -> {
           return "/" + p_242841_;
@@ -127,32 +127,36 @@
 +               com.google.common.base.Throwables.throwIfUnchecked(event.getException());
 +            return;
 +         }
-+         ContextChain<CommandSourceStack> contextchain = finishParsing(p_242844_, p_242841_, commandsourcestack, label); //CraftBukkit
++         ContextChain<CommandSourceStack> contextchain = finishParsing(event.getParseResults(), p_242841_, commandsourcestack);
           if (contextchain != null) {
              executeCommandInContext(commandsourcestack, (p_308343_) -> {
                 ExecutionContext.queueInitialCommandExecution(p_308343_, p_242841_, contextchain, commandsourcestack, CommandResultCallback.EMPTY);
-@@ -297,7 +_,7 @@
-    }
+@@ -291,6 +_,7 @@
+             LOGGER.error("'/{}' threw an exception", p_242841_, exception);
+          }
+       } finally {
++         ketting$performCommand$label.set(null);
+          commandsourcestack.getServer().getProfiler().pop();
+       }
  
-    @Nullable
--   private static ContextChain<CommandSourceStack> finishParsing(ParseResults<CommandSourceStack> p_311671_, String p_312044_, CommandSourceStack p_310074_) {
-+   private static ContextChain<CommandSourceStack> finishParsing(ParseResults<CommandSourceStack> p_311671_, String p_312044_, CommandSourceStack p_310074_, String label) { //CraftBukkit
-       try {
-          validateParseResults(p_311671_);
-          return ContextChain.tryFlatten(p_311671_.getContext().build(p_312044_)).orElseThrow(() -> {
 @@ -308,7 +_,7 @@
           if (commandsyntaxexception.getInput() != null && commandsyntaxexception.getCursor() >= 0) {
              int i = Math.min(commandsyntaxexception.getInput().length(), commandsyntaxexception.getCursor());
              MutableComponent mutablecomponent = Component.empty().withStyle(ChatFormatting.GRAY).withStyle((p_82134_) -> {
 -               return p_82134_.withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/" + p_312044_));
-+                  return p_82134_.withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, label)); // CraftBukkit
++               return p_82134_.withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/" + (ketting$performPrefixedCommand$label.get() == null ? p_312044_ : ketting$performPrefixedCommand$label.getAndSet(null)))); // CraftBukkit
              });
              if (i > 10) {
                 mutablecomponent.append(CommonComponents.ELLIPSIS);
-@@ -349,16 +_,60 @@
+@@ -349,16 +_,65 @@
  
     }
  
++   public void performCommand(ParseResults<CommandSourceStack> p_242844_, String p_242841_, String label) { // CraftBukkit
++      this.ketting$performCommand$label.set(label);
++      this.performCommand(p_242844_, p_242841_);
++   }
++
 +   //Ketting start - rewrite to add forge dispatcher support
     public void sendCommands(ServerPlayer p_82096_) {
 -      Map<CommandNode<CommandSourceStack>, CommandNode<SharedSuggestionProvider>> map = Maps.newHashMap();
@@ -213,7 +217,7 @@
           if (commandnode.canUse(p_82115_)) {
              ArgumentBuilder<SharedSuggestionProvider, ?> argumentbuilder = (ArgumentBuilder)commandnode.createBuilder();
              argumentbuilder.requires((p_82126_) -> {
-@@ -412,7 +_,44 @@
+@@ -412,7 +_,48 @@
     }
  
     public CommandDispatcher<CommandSourceStack> getDispatcher() {
@@ -233,10 +237,14 @@
 +   }
 +
 +   public org.kettingpowered.ketting.common.utils.Wrapper<CommandDispatcher<CommandSourceStack>> getCorrectDispatcher(String cmd) {
++      return getCorrectDispatcher(cmd, true);
++   }
++
++   public org.kettingpowered.ketting.common.utils.Wrapper<CommandDispatcher<CommandSourceStack>> getCorrectDispatcher(String cmd, boolean stripSlash) {
 +      if (forgeCommand) return getForgeDispatcher();
 +
 +      String literal = cmd.split(" ")[0]; //the command root, ex. deop
-+      if (literal.startsWith("/"))
++      if (literal.startsWith("/") && stripSlash)
 +         literal = literal.substring(1);
 +      if (literal.startsWith("forge:"))
 +         return getForgeDispatcher();

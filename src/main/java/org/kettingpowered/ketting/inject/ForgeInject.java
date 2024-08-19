@@ -5,6 +5,8 @@ import com.google.common.collect.HashBiMap;
 import io.izzel.arclight.api.EnumHelper;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.stats.Stats;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
@@ -26,14 +28,16 @@ import org.bukkit.craftbukkit.v1_20_R3.block.impl.CraftWallSign;
 import org.bukkit.craftbukkit.v1_20_R3.potion.CraftPotionEffectType;
 import org.bukkit.craftbukkit.v1_20_R3.util.CraftMagicNumbers;
 import org.bukkit.craftbukkit.v1_20_R3.util.CraftNamespacedKey;
+import org.bukkit.craftbukkit.v1_20_R3.util.CraftSpawnCategory;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Pose;
+import org.bukkit.entity.SpawnCategory;
 import org.bukkit.entity.Villager;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.potion.PotionType;
 import org.jetbrains.annotations.NotNull;
 import org.kettingpowered.ketting.config.KettingConfig;
 import org.kettingpowered.ketting.core.Ketting;
-import org.kettingpowered.ketting.entity.CraftCustomEntity;
 
 import java.lang.reflect.Modifier;
 import java.util.*;
@@ -91,6 +95,27 @@ public class ForgeInject {
     public static final Map<net.minecraft.world.entity.EntityType<?>, String> ENTITY_TYPES = new ConcurrentHashMap<>();
     private static final Map<Class<?>, List<Map.Entry<Block, Material>>> MATERIALS = new ConcurrentHashMap<>();
 
+    public static EntityType getBukkitEntityType(Entity entity) {
+        EntityType type = EntityType.fromName(ENTITY_TYPES.get(entity.getType()));
+        return type == null ? EntityType.UNKNOWN : type;
+    }
+
+    //Credit goes to Arclight for this fix
+    public static Pose getBukkitEntityPose(net.minecraft.world.entity.Pose nms) {
+        if (Pose.values().length <= nms.ordinal()) {
+            var newTypes = new ArrayList<Pose>();
+            var forgeCount = net.minecraft.world.entity.Pose.values().length;
+            for (var id = Pose.values().length; id < forgeCount; id++) {
+                var name = net.minecraft.world.entity.Pose.values()[id].name();
+                var newPhase = EnumHelper.makeEnum(Pose.class, name, id, List.of(), List.of());
+                newTypes.add(newPhase);
+                debug("Registering NMS pose {} as pose {}", name, newPhase);
+            }
+            EnumHelper.addEnums(Pose.class, newTypes);
+        }
+        return org.bukkit.entity.Pose.values()[nms.ordinal()];
+    }
+
     public static void doInjectingMagic() {
         debug("Injecting Forge Materials into Bukkit");
         addForgeMaterials();
@@ -102,6 +127,8 @@ public class ForgeInject {
         addForgeBiomes();
         debug("Injecting Forge Entities into Bukkit");
         addForgeEntities();
+        debug("Injecting Forge Spawn Categories into Bukkit");
+        addForgeSpawnCategories();
         debug("Injecting Forge VillagerProfessions into Bukkit");
         addForgeVillagerProfessions();
         debug("Injecting Forge statistics into bukkit");
@@ -427,10 +454,11 @@ public class ForgeInject {
             int typeId = enumName.hashCode();
             try {
                 var bukkitType = EnumHelper.makeEnum(EntityType.class, enumName, ordinal,
-                        List.of(String.class, Class.class, Integer.TYPE, Boolean.TYPE),
-                        List.of(enumName.toLowerCase(), CraftCustomEntity.class, typeId, false));
+                        List.of(String.class, Class.class, Integer.TYPE, Boolean.TYPE, String.class),
+                        List.of(location.getPath(), org.bukkit.entity.Entity.class, typeId, false, location.getNamespace()));
                 EntityType.NAME_MAP.put(enumName.toLowerCase(), bukkitType);
                 EntityType.ID_MAP.put((short) typeId, bukkitType);
+                bukkitType.createFactory(entry.getValue());
                 ordinal++;
                 values.add(bukkitType);
                 debug("Injecting Forge Entity into Bukkit: " + enumName);
@@ -440,6 +468,23 @@ public class ForgeInject {
         }
         EnumHelper.addEnums(EntityType.class, values);
         debug("Injecting Forge Entity into Bukkit: DONE");
+    }
+
+    //Credit goes to Arclight for this fix
+    private static void addForgeSpawnCategories() {
+        var id = SpawnCategory.values().length;
+        var newTypes = new ArrayList<SpawnCategory>();
+        for (var category : MobCategory.values()) {
+            try {
+                CraftSpawnCategory.toBukkit(category);
+            } catch (Exception e) {
+                var name = category.name();
+                var spawnCategory = EnumHelper.makeEnum(SpawnCategory.class, name, id++, List.of(), List.of());
+                newTypes.add(spawnCategory);
+                debug("Registered {} as spawn category {}", name, spawnCategory);
+            }
+        }
+        EnumHelper.addEnums(SpawnCategory.class, newTypes);
     }
 
     private static void addForgeVillagerProfessions() {

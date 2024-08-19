@@ -47,7 +47,7 @@
        this.containerMenu = this.inventoryMenu;
        this.moveTo((double)p_250289_.getX() + 0.5D, (double)(p_250289_.getY() + 1), (double)p_250289_.getZ() + 0.5D, p_251702_, 0.0F);
        this.rotOffs = 180.0F;
-+      this.gatherCapabilities();
++      this.postInit();
     }
  
     public boolean blockActionRestricted(Level p_36188_, BlockPos p_36189_, GameType p_36190_) {
@@ -85,15 +85,14 @@
     }
  
     protected float getMaxHeadRotationRelativeToBody() {
-@@ -299,7 +_,7 @@
+@@ -299,6 +_,7 @@
     private void turtleHelmetTick() {
        ItemStack itemstack = this.getItemBySlot(EquipmentSlot.HEAD);
        if (itemstack.is(Items.TURTLE_HELMET) && !this.isEyeInFluid(FluidTags.WATER)) {
--         this.addEffect(new MobEffectInstance(MobEffects.WATER_BREATHING, 200, 0, false, false, true));
-+         this.addEffect(new MobEffectInstance(MobEffects.WATER_BREATHING, 200, 0, false, false, true), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.TURTLE_HELMET); // CraftBukkit
++         this.prepareAddEffect(org.bukkit.event.entity.EntityPotionEffectEvent.Cause.TURTLE_HELMET); //Ketting
+          this.addEffect(new MobEffectInstance(MobEffects.WATER_BREATHING, 200, 0, false, false, true));
        }
  
-    }
 @@ -352,6 +_,10 @@
     }
  
@@ -140,31 +139,38 @@
        super.die(p_36152_);
        this.reapplyPosition();
        if (!this.isSpectator()) {
-@@ -621,11 +_,17 @@
+@@ -621,12 +_,23 @@
  
     @Nullable
     public ItemEntity drop(ItemStack p_36177_, boolean p_36178_) {
 -      return this.drop(p_36177_, false, p_36178_);
+-   }
 +      return net.minecraftforge.common.ForgeHooks.onPlayerTossEvent(this, p_36177_, p_36178_);
-    }
++   }
++
++   //Ketting start
++   public final java.util.concurrent.atomic.AtomicBoolean ketting$drop$callEvent = new java.util.concurrent.atomic.AtomicBoolean(true);
++   @Nullable
++   public ItemEntity drop(ItemStack p_36179_, boolean p_36180_, boolean p_36181_, boolean callEvent) {
++      ketting$drop$callEvent.set(callEvent);
++      // CraftBukkit start - SPIGOT-2942: Add boolean to call event
++      return drop(p_36179_, p_36180_, p_36181_);
++   }
++   //Ketting end
  
     @Nullable
     public ItemEntity drop(ItemStack p_36179_, boolean p_36180_, boolean p_36181_) {
-+      // CraftBukkit start - SPIGOT-2942: Add boolean to call event
-+      return drop(p_36179_, p_36180_, p_36181_, true);
-+   }
-+
-+   @Nullable
-+   public ItemEntity drop(ItemStack p_36179_, boolean p_36180_, boolean p_36181_, boolean callEvent) {
        if (p_36179_.isEmpty()) {
++         ketting$drop$callEvent.set(true);
           return null;
        } else {
+          if (this.level().isClientSide) {
 @@ -655,11 +_,43 @@
              itementity.setDeltaMovement((double)(-f3 * f2 * 0.3F) + Math.cos((double)f5) * (double)f6, (double)(-f8 * 0.3F + 0.1F + (this.random.nextFloat() - this.random.nextFloat()) * 0.1F), (double)(f4 * f2 * 0.3F) + Math.sin((double)f5) * (double)f6);
           }
  
 +         // CraftBukkit start - fire PlayerDropItemEvent
-+         if (!callEvent) { // SPIGOT-2942: Add boolean to call event
++         if (!ketting$drop$callEvent.getAndSet(true)) { // SPIGOT-2942: Add boolean to call event
 +            return itementity;
 +         }
 +         org.bukkit.entity.Player player = (org.bukkit.entity.Player) this.getBukkitEntity();
@@ -317,7 +323,7 @@
              });
              if (this.useItem.isEmpty()) {
                 if (interactionhand == InteractionHand.MAIN_HAND) {
-@@ -880,19 +_,35 @@
+@@ -880,18 +_,35 @@
        }
     }
  
@@ -349,11 +355,10 @@
           }
  
           if (f1 != 0.0F) {
--            this.causeFoodExhaustion(p_36312_.getFoodExhaustion());
-+            this.causeFoodExhaustion(p_36312_.getFoodExhaustion(), org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.DAMAGED); // CraftBukkit - EntityExhaustionEvent
++            this.setFoodExhaustionReason(org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.DAMAGED);
+             this.causeFoodExhaustion(p_36312_.getFoodExhaustion());
              this.getCombatTracker().recordDamage(p_36312_, f1);
              this.setHealth(this.getHealth() - f1);
-             if (f1 < 3.4028235E37F) {
 @@ -948,6 +_,8 @@
  
           return InteractionResult.PASS;
@@ -439,7 +444,7 @@
                 }
  
                 float f4 = 0.0F;
-@@ -1098,8 +_,15 @@
+@@ -1098,8 +_,16 @@
                 if (p_36347_ instanceof LivingEntity) {
                    f4 = ((LivingEntity)p_36347_).getHealth();
                    if (j > 0 && !p_36347_.isOnFire()) {
@@ -451,7 +456,8 @@
 +
 +                     if (!combustEvent.isCancelled()) {
 +                        flag4 = true;
-+                        p_36347_.setSecondsOnFire(combustEvent.getDuration(), false);
++                        p_36347_.ketting$setSecondsOnFire$callEvent.set(false);
++                        p_36347_.setSecondsOnFire(combustEvent.getDuration());
 +                     }
 +                     // CraftBukkit end
                    }
@@ -524,7 +530,7 @@
                          this.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
                       }
                    }
-@@ -1177,7 +_,14 @@
+@@ -1177,7 +_,15 @@
                       float f5 = f4 - ((LivingEntity)p_36347_).getHealth();
                       this.awardStat(Stats.DAMAGE_DEALT, Math.round(f5 * 10.0F));
                       if (j > 0) {
@@ -534,18 +540,20 @@
 +                        org.bukkit.Bukkit.getPluginManager().callEvent(combustEvent);
 +
 +                        if (!combustEvent.isCancelled()) {
-+                           entity.setSecondsOnFire(combustEvent.getDuration(), false);
++                           entity.ketting$setSecondsOnFire$callEvent.set(false);
++                           entity.setSecondsOnFire(combustEvent.getDuration());
 +                        }
 +                        // CraftBukkit end
                       }
  
                       if (this.level() instanceof ServerLevel && f5 > 2.0F) {
-@@ -1186,14 +_,20 @@
+@@ -1186,14 +_,21 @@
                       }
                    }
  
 -                  this.causeFoodExhaustion(0.1F);
-+                  this.causeFoodExhaustion(this.level().spigotConfig.combatExhaustion, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.ATTACK); // CraftBukkit - org.bukkit.event.entity.EntityExhaustionEvent // Spigot - Change to use configurable value
++                  this.setFoodExhaustionReason(org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.ATTACK);
++                  this.causeFoodExhaustion(this.level().spigotConfig.combatExhaustion); // Spigot - Change to use configurable value
                 } else {
                    this.level().playSound((Player)null, this.getX(), this.getY(), this.getZ(), SoundEvents.PLAYER_ATTACK_NODAMAGE, this.getSoundSource(), 1.0F, 1.0F);
                    if (flag4) {
@@ -600,15 +608,17 @@
        } else {
           boolean flag = block.isPossibleToRespawnInThis(blockstate);
           BlockState blockstate1 = p_36131_.getBlockState(p_36132_.above());
-@@ -1355,9 +_,9 @@
+@@ -1355,9 +_,11 @@
        super.jumpFromGround();
        this.awardStat(Stats.JUMP);
        if (this.isSprinting()) {
 -         this.causeFoodExhaustion(0.2F);
-+         this.causeFoodExhaustion(this.level().spigotConfig.jumpSprintExhaustion, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.JUMP_SPRINT); // CraftBukkit - org.bukkit.event.entity.EntityExhaustionEvent // Spigot - Change to use configurable value
++         this.setFoodExhaustionReason(org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.JUMP_SPRINT);
++         this.causeFoodExhaustion(this.level().spigotConfig.jumpSprintExhaustion); // Spigot - Change to use configurable value
        } else {
 -         this.causeFoodExhaustion(0.05F);
-+         this.causeFoodExhaustion(this.level().spigotConfig.jumpWalkExhaustion, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.JUMP); // CraftBukkit - org.bukkit.event.entity.EntityExhaustionEvent // Spigot - Change to use configurable value
++         this.setFoodExhaustionReason(org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.JUMP);
++         this.causeFoodExhaustion(this.level().spigotConfig.jumpWalkExhaustion); // Spigot - Change to use configurable value
        }
  
     }
@@ -717,21 +727,23 @@
        this.experienceLevel += p_36276_;
        if (this.experienceLevel < 0) {
           this.experienceLevel = 0;
-@@ -1541,10 +_,20 @@
+@@ -1541,14 +_,33 @@
        }
     }
  
 +   // CraftBukkit start
-    public void causeFoodExhaustion(float p_36400_) {
-+      this.causeFoodExhaustion(p_36400_, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.UNKNOWN);
++   //Ketting start - mixin
++   private org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason causeFoodExhaustion$reason = org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.UNKNOWN;
++   public void setFoodExhaustionReason(org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason reason) {
++      this.causeFoodExhaustion$reason = reason;
 +   }
 +
-+   public void causeFoodExhaustion(float p_36400_, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason reason) {
+    public void causeFoodExhaustion(float p_36400_) {
        if (!this.abilities.invulnerable) {
           if (!this.level().isClientSide) {
 -            this.foodData.addExhaustion(p_36400_);
 +            // CraftBukkit start
-+            org.bukkit.event.entity.EntityExhaustionEvent event = org.bukkit.craftbukkit.v1_20_R3.event.CraftEventFactory.callPlayerExhaustionEvent(this, reason, p_36400_);
++            org.bukkit.event.entity.EntityExhaustionEvent event = org.bukkit.craftbukkit.v1_20_R3.event.CraftEventFactory.callPlayerExhaustionEvent(this, causeFoodExhaustion$reason, p_36400_);
 +            if (!event.isCancelled()) {
 +               this.foodData.addExhaustion(event.getExhaustion());
 +            }
@@ -739,6 +751,18 @@
           }
  
        }
+-   }
++      causeFoodExhaustion$reason = org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.UNKNOWN;
++   }
++
++   public void causeFoodExhaustion(float p_36400_, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason reason) {
++      setFoodExhaustionReason(reason);
++      causeFoodExhaustion(p_36400_);
++   }
++   //Ketting end
+ 
+    public Optional<WardenSpawnTracker> getWardenSpawnTracker() {
+       return Optional.empty();
 @@ -1629,11 +_,11 @@
     public void setItemSlot(EquipmentSlot p_36161_, ItemStack p_36162_) {
        this.verifyEquippedItem(p_36162_);
@@ -754,31 +778,33 @@
        }
  
     }
-@@ -1670,26 +_,31 @@
+@@ -1670,27 +_,39 @@
  
     protected void removeEntitiesOnShoulder() {
        if (this.timeEntitySatOnShoulder + 20L < this.level().getGameTime()) {
--         this.respawnEntityOnShoulder(this.getShoulderEntityLeft());
--         this.setShoulderEntityLeft(new CompoundTag());
--         this.respawnEntityOnShoulder(this.getShoulderEntityRight());
--         this.setShoulderEntityRight(new CompoundTag());
++         //Ketting start - mixin inject
 +         // CraftBukkit start
-+         if (this.respawnEntityOnShoulder(this.getShoulderEntityLeft())) {
+          this.respawnEntityOnShoulder(this.getShoulderEntityLeft());
+-         this.setShoulderEntityLeft(new CompoundTag());
++         if (respawnEntityOnShoulder$return)
 +            this.setShoulderEntityLeft(new CompoundTag());
-+         }
-+         if (this.respawnEntityOnShoulder(this.getShoulderEntityRight())) {
++
+          this.respawnEntityOnShoulder(this.getShoulderEntityRight());
+-         this.setShoulderEntityRight(new CompoundTag());
++         if (respawnEntityOnShoulder$return)
 +            this.setShoulderEntityRight(new CompoundTag());
-+         }
 +         // CraftBukkit end
        }
  
     }
  
--   private void respawnEntityOnShoulder(CompoundTag p_36371_) {
-+   private boolean respawnEntityOnShoulder(CompoundTag p_36371_) { // CraftBukkit void->boolean
++   private boolean respawnEntityOnShoulder$return = false;
+    private void respawnEntityOnShoulder(CompoundTag p_36371_) {
++      respawnEntityOnShoulder$return = false; //reset
++
        if (!this.level().isClientSide && !p_36371_.isEmpty()) {
 -         EntityType.create(p_36371_, this.level()).ifPresent((p_309218_) -> {
-+         return EntityType.create(p_36371_, this.level()).map((p_309218_) -> { // CraftBukkit
++         respawnEntityOnShoulder$return = EntityType.create(p_36371_, this.level()).map((p_309218_) -> { // CraftBukkit
              if (p_309218_ instanceof TamableAnimal) {
                 ((TamableAnimal)p_309218_).setOwnerUUID(this.uuid);
              }
@@ -788,12 +814,15 @@
 -         });
 +            return ((ServerLevel) this.level()).addWithUUID(p_309218_, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.SHOULDER_ENTITY); // CraftBukkit
 +         }).orElse(true); // CraftBukkit
++         return;
        }
  
-+      return true; // CraftBukkit
++      respawnEntityOnShoulder$return = true; // CraftBukkit
     }
++   //Ketting end
  
     public abstract boolean isSpectator();
+ 
 @@ -1713,7 +_,11 @@
     }
  
@@ -875,7 +904,7 @@
 +
 +   @Override
 +   public <T> net.minecraftforge.common.util.LazyOptional<T> getCapability(net.minecraftforge.common.capabilities.Capability<T> capability, @Nullable Direction facing) {
-+      if (this.isAlive() && capability == net.minecraftforge.common.capabilities.ForgeCapabilities.ITEM_HANDLER) {
++      if (capability == net.minecraftforge.common.capabilities.ForgeCapabilities.ITEM_HANDLER && this.isAlive()) {
 +         if (facing == null) return playerJoinedHandler.cast();
 +         else if (facing.getAxis().isVertical()) return playerMainHandler.cast();
 +         else if (facing.getAxis().isHorizontal()) return playerEquipmentHandler.cast();

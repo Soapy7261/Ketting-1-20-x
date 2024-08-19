@@ -52,6 +52,7 @@ import org.bukkit.util.Vector;
 import org.kettingpowered.ketting.config.KettingConfig;
 import org.kettingpowered.ketting.core.Ketting;
 import org.kettingpowered.ketting.entity.CraftCustomEntity;
+import org.kettingpowered.ketting.entity.UnknownEntity;
 import org.kettingpowered.ketting.internal.KettingConstants;
 
 import java.util.List;
@@ -97,11 +98,17 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
             return entityTypeData.convertFunction().apply(server, entity);
         }
 
-        //Magma - instead of throwing an AssertionError we return a custom entity
-        if (KettingConfig.getInstance().WARN_ON_UNKNOWN_ENTITY.getValue()) {
-            String superclass = entity.getClass().getSuperclass() == null ? "" : " (" + entity.getClass().getSuperclass().getName() + ")";
-            Ketting.LOGGER.warn("Unknown entity type: " + entity.getClass().getName() + superclass);
-            Ketting.LOGGER.warn("Please report this to the " + KettingConstants.NAME + " developers at " + KettingConstants.SITE_LINK);
+        //Ketting - instead of throwing an AssertionError we return a custom entity
+        String entityName = entity.getClass().getName();
+        if (KettingConfig.getInstance().WARN_ON_UNKNOWN_ENTITY.getValue() && !UnknownEntity.isWarned(entityName)) {
+            String superclass = entity.getClass().getSuperclass() == null ? "" : entity.getClass().getSuperclass().getName();
+            if (!superclass.equals(Entity.class.getName())) { //Ignore direct descendants of Entity
+                if (superclass.isBlank()) Ketting.LOGGER.warn("Unknown entity type: {}", entityName);
+                else Ketting.LOGGER.warn("Unknown entity type: {} ({})", entityName, superclass);
+
+                Ketting.LOGGER.warn("Please report this to the " + KettingConstants.NAME + " developers at " + KettingConstants.SITE_LINK);
+                UnknownEntity.warned(entityName);
+            }
         }
         return new CraftCustomEntity(server, entity);
     }

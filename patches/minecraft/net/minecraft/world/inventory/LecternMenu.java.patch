@@ -1,19 +1,21 @@
 --- a/net/minecraft/world/inventory/LecternMenu.java
 +++ b/net/minecraft/world/inventory/LecternMenu.java
-@@ -6,6 +_,22 @@
+@@ -6,6 +_,24 @@
  import net.minecraft.world.item.ItemStack;
  
  public class LecternMenu extends AbstractContainerMenu {
 +
 +   // CraftBukkit start
 +   private org.bukkit.craftbukkit.v1_20_R3.inventory.CraftInventoryView bukkitEntity = null;
-+   private org.bukkit.entity.Player player;
++   public org.bukkit.entity.Player player;
 +
 +   @Override
 +   public org.bukkit.craftbukkit.v1_20_R3.inventory.CraftInventoryView getBukkitView() {
 +      if (bukkitEntity != null) {
 +         return bukkitEntity;
 +      }
++
++      if (this.player == null) this.player = org.kettingpowered.ketting.utils.InventoryViewHelper.getCraftContainerOwner();
 +
 +      org.bukkit.craftbukkit.v1_20_R3.inventory.CraftInventoryLectern inventory = new org.bukkit.craftbukkit.v1_20_R3.inventory.CraftInventoryLectern(this.lectern);
 +      bukkitEntity = new org.bukkit.craftbukkit.v1_20_R3.inventory.CraftInventoryView(this.player, inventory, this);
@@ -23,30 +25,6 @@
     private static final int DATA_COUNT = 1;
     private static final int SLOT_COUNT = 1;
     public static final int BUTTON_PREV_PAGE = 1;
-@@ -15,11 +_,12 @@
-    private final Container lectern;
-    private final ContainerData lecternData;
- 
--   public LecternMenu(int p_39822_) {
--      this(p_39822_, new SimpleContainer(1), new SimpleContainerData(1));
-+   public LecternMenu(int p_39822_, net.minecraft.world.entity.player.Inventory inventory) {
-+      this(p_39822_, new SimpleContainer(1), new SimpleContainerData(1), inventory);
-    }
- 
--   public LecternMenu(int p_39824_, Container p_39825_, ContainerData p_39826_) {
-+   public LecternMenu(int p_39824_, Container p_39825_, ContainerData p_39826_, net.minecraft.world.entity.player.Inventory inventory) {
-+      // CraftBukkit end
-       super(MenuType.LECTERN, p_39824_);
-       checkContainerSize(p_39825_, 1);
-       checkContainerDataCount(p_39826_, 1);
-@@ -32,6 +_,7 @@
-          }
-       });
-       this.addDataSlots(p_39826_);
-+      player = (org.bukkit.entity.Player) inventory.player.getBukkitEntity(); // CraftBukkit
-    }
- 
-    public boolean clickMenuButton(Player p_39833_, int p_39834_) {
 @@ -54,6 +_,13 @@
                    return false;
                 }

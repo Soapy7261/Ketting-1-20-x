@@ -1,14 +1,14 @@
 --- a/net/minecraft/world/level/block/BeehiveBlock.java
 +++ b/net/minecraft/world/level/block/BeehiveBlock.java
-@@ -104,7 +_,7 @@
+@@ -104,6 +_,8 @@
           for(Bee bee : list) {
              if (bee.getTarget() == null) {
                 Player player = Util.getRandom(list1, p_49650_.random);
--               bee.setTarget(player);
-+               bee.setTarget(player, org.bukkit.event.entity.EntityTargetEvent.TargetReason.CLOSEST_PLAYER, true); // CraftBukkit
++               bee.ketting$setTarget$reason.set(org.bukkit.event.entity.EntityTargetEvent.TargetReason.CLOSEST_PLAYER);
++               bee.ketting$setTarget$fireEvent.set(true);
+                bee.setTarget(player);
              }
           }
-       }
 @@ -121,7 +_,7 @@
        boolean flag = false;
        if (i >= 5) {

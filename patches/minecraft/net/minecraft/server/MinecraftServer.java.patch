@@ -91,11 +91,10 @@
     }
  
     private void readScoreboard(DimensionDataStorage p_129842_) {
-@@ -303,7 +_,19 @@
+@@ -303,6 +_,18 @@
  
     protected abstract boolean initServer() throws IOException;
  
--   protected void loadLevel() {
 +   //Ketting start
 +   private String loadLevel$worldName;
 +   protected void prepareLoadLevel(String worldName) {
@@ -108,10 +107,9 @@
 +   }
 +   //Ketting end
 +
-+   protected void loadLevel() { // CraftBukkit
+    protected void loadLevel() {
        if (!JvmProfiler.INSTANCE.isRunning()) {
        }
- 
 @@ -313,7 +_,14 @@
        ChunkProgressListener chunkprogresslistener = this.progressListenerFactory.create(11);
        this.createLevels(chunkprogresslistener);
@@ -128,12 +126,16 @@
        if (profiledduration != null) {
           profiledduration.finish();
        }
-@@ -340,12 +_,16 @@
+@@ -340,12 +_,21 @@
        long j = BiomeManager.obfuscateSeed(i);
        List<CustomSpawner> list = ImmutableList.of(new PhantomSpawner(), new PatrolSpawner(), new CatSpawner(), new VillageSiege(), new WanderingTraderSpawner(serverleveldata));
        LevelStem levelstem = registry.get(LevelStem.OVERWORLD);
--      ServerLevel serverlevel = new ServerLevel(this, this.executor, this.storageSource, serverleveldata, Level.OVERWORLD, levelstem, p_129816_, flag, j, list, true, (RandomSequences)null);
-+      ServerLevel serverlevel = ServerLevel.init(this, this.executor, this.storageSource, serverleveldata, Level.OVERWORLD, levelstem, p_129816_, flag, j, list, true, (RandomSequences)null, org.bukkit.World.Environment.NORMAL, this.server.getGenerator(loadLevel$worldName), this.server.getBiomeProvider(loadLevel$worldName));
++      //Ketting start - pass bukkit values
++      ServerLevel.init$gen = this.server.getGenerator(loadLevel$worldName);
++      ServerLevel.init$env = org.bukkit.World.Environment.NORMAL;
++      ServerLevel.init$biomeProvider = this.server.getBiomeProvider(loadLevel$worldName);
++      //Ketting end
+       ServerLevel serverlevel = new ServerLevel(this, this.executor, this.storageSource, serverleveldata, Level.OVERWORLD, levelstem, p_129816_, flag, j, list, true, (RandomSequences)null);
 +      org.kettingpowered.ketting.core.Ketting.getInstance().getDimensionRegistry().get().register(this.registryAccess().registryOrThrow(Registries.LEVEL_STEM)); //Ketting
        this.levels.put(Level.OVERWORLD, serverlevel);
        DimensionDataStorage dimensiondatastorage = serverlevel.getDataStorage();
@@ -146,7 +148,7 @@
        if (!serverleveldata.isInitialized()) {
           try {
              setInitialSpawn(serverlevel, serverleveldata, worldoptions.generateBonusChest(), flag);
-@@ -379,9 +_,87 @@
+@@ -379,9 +_,101 @@
           if (resourcekey != LevelStem.OVERWORLD) {
              ResourceKey<Level> resourcekey1 = ResourceKey.create(Registries.DIMENSION, resourcekey.location());
              DerivedLevelData derivedleveldata = new DerivedLevelData(this.worldData, serverleveldata);
@@ -218,11 +220,25 @@
 +            LevelStorageSource.LevelStorageAccess source;
 +            try {
 +               source = LevelStorageSource.createDefault(server.getWorldContainer().toPath()).validateAndCreateAccess(name, resourcekey);
++
++               if (org.kettingpowered.ketting.config.KettingConfig.getInstance().MERGE_WORLD_SYSTEMS.getValue()) {
++                  LevelStorageSource.LevelStorageAccess newSource = this.storageSource.reference.deriveFromSource(this.storageSource, resourcekey);
++
++                  if (org.kettingpowered.ketting.utils.WorldSystemConverter.needsConversion(source, resourcekey1))
++                     org.kettingpowered.ketting.utils.WorldSystemConverter.convert(source, newSource, resourcekey1);
++
++                  source = newSource;
++               }
 +            } catch (IOException | net.minecraft.world.level.validation.ContentValidationException e) {
 +               throw new RuntimeException(e);
 +            }
 +
-+            ServerLevel serverlevel1 = ServerLevel.init(this, this.executor, source, derivedleveldata, resourcekey1, entry.getValue(), p_129816_, flag, j, ImmutableList.of(), false, randomsequences, (org.bukkit.World.Environment) org.kettingpowered.ketting.core.Ketting.getInstance().getDimensionRegistry().get().getKey(resourcekey), gen, biomeProvider);
++            //Ketting start - pass bukkit values
++            ServerLevel.init$gen = gen;
++            ServerLevel.init$env = (org.bukkit.World.Environment) org.kettingpowered.ketting.core.Ketting.getInstance().getDimensionRegistry().get().getKey(resourcekey);
++            ServerLevel.init$biomeProvider = biomeProvider;
++            //Ketting end
++            ServerLevel serverlevel1 = new ServerLevel(this, this.executor, source, derivedleveldata, resourcekey1, entry.getValue(), p_129816_, flag, j, ImmutableList.of(), false, randomsequences);
 +
 +            if (serverlevel1.generator != null) {
 +               serverlevel1.getWorld().getPopulators().addAll(serverlevel1.generator.getDefaultPopulators(serverlevel1.getWorld()));
@@ -332,19 +348,19 @@
     }
  
     public GameType getDefaultGameType() {
-@@ -510,11 +_,15 @@
+@@ -510,11 +_,13 @@
           flag = true;
        }
  
-+      // CraftBukkit start - moved to WorldServer.save
-+      /*
++      // Ketting start - stay here
        ServerLevel serverlevel2 = this.overworld();
        ServerLevelData serverleveldata = this.worldData.overworldData();
        serverleveldata.setWorldBorder(serverlevel2.getWorldBorder().createSettings());
-       this.worldData.setCustomBossEvents(this.getCustomBossEvents().save());
-       this.storageSource.saveDataTag(this.registryAccess(), this.worldData, this.getPlayerList().getSingleplayerData());
-+      */
-+      // CraftBukkit end
+-      this.worldData.setCustomBossEvents(this.getCustomBossEvents().save());
+-      this.storageSource.saveDataTag(this.registryAccess(), this.worldData, this.getPlayerList().getSingleplayerData());
++      ((net.minecraft.world.level.storage.PrimaryLevelData) serverleveldata).setCustomBossEvents(this.getCustomBossEvents().save());
++      serverlevel2.convertable.saveDataTag(this.registryAccess(), (net.minecraft.world.level.storage.PrimaryLevelData) serverleveldata, this.getPlayerList().getSingleplayerData());
++      // Ketting end
        if (p_129887_) {
           for(ServerLevel serverlevel1 : this.getAllLevels()) {
              LOGGER.info("ThreadedAnvilChunkStorage ({}): All chunks are saved", (Object)serverlevel1.getChunkSource().chunkMap.getStorageName());
@@ -553,7 +569,8 @@
        ++this.tickCount;
        this.tickRateManager.tick();
        this.tickChildren(p_129871_);
-       if (i - this.lastServerStatus >= STATUS_EXPIRE_TIME_NANOS) {
+-      if (i - this.lastServerStatus >= STATUS_EXPIRE_TIME_NANOS) {
++      if (!cacheDisabled && i - this.lastServerStatus >= 5000000000L) { //Ketting - cacheDisabled
           this.lastServerStatus = i;
           this.status = this.buildServerStatus();
 +         resetStatusCache(status); //Ketting - who added this?
@@ -587,7 +604,7 @@
 +   }
 +
 +   private static final com.google.gson.Gson GSON = new com.google.gson.Gson();
-+   private String cachedServerStatus; // FORGE: cache the server status json in case a client spams requests
++   public String cachedServerStatus; // FORGE: cache the server status json in case a client spams requests //Ketting - private -> public
 +   private void resetStatusCache(ServerStatus status) {
 +      this.cachedServerStatus = GSON.toJson(ServerStatus.CODEC.encodeStart(com.mojang.serialization.JsonOps.INSTANCE, status)
 +              .result().orElseThrow());
@@ -597,15 +614,27 @@
     }
  
     private int computeNextAutosaveInterval() {
-@@ -876,7 +_,7 @@
+@@ -876,9 +_,19 @@
  
     private ServerStatus buildServerStatus() {
        ServerStatus.Players serverstatus$players = this.buildPlayerStatus();
 -      return new ServerStatus(Component.nullToEmpty(this.motd), Optional.of(serverstatus$players), Optional.of(ServerStatus.Version.current()), Optional.ofNullable(this.statusIcon), this.enforceSecureProfile());
 +      return new ServerStatus(Component.nullToEmpty(this.motd), Optional.of(serverstatus$players), Optional.of(ServerStatus.Version.current()), Optional.ofNullable(this.statusIcon), this.enforceSecureProfile(), Optional.of(new net.minecraftforge.network.ServerStatusPing()));
++   }
++   //Ketting start
++   private boolean cacheDisabled;
++   public void disableStatusCache() {
++      this.cacheDisabled = true;
     }
  
++   public String statusToJson(ServerStatus status) {
++      return GSON.toJson(ServerStatus.CODEC.encodeStart(com.mojang.serialization.JsonOps.INSTANCE, status)
++              .result().orElseThrow());
++   }
++   //Ketting end
     private ServerStatus.Players buildPlayerStatus() {
+       List<ServerPlayer> list = this.playerList.getPlayers();
+       int i = this.getMaxPlayers();
 @@ -903,47 +_,92 @@
        this.getPlayerList().getPlayers().forEach((p_296434_) -> {
           p_296434_.connection.suspendFlushing();

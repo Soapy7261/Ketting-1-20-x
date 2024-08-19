@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/BaseFireBlock.java
 +++ b/net/minecraft/world/level/block/BaseFireBlock.java
-@@ -115,7 +_,14 @@
+@@ -115,7 +_,15 @@
        if (!p_49263_.fireImmune()) {
           p_49263_.setRemainingFireTicks(p_49263_.getRemainingFireTicks() + 1);
           if (p_49263_.getRemainingFireTicks() == 0) {
@@ -10,22 +10,22 @@
 +            p_49261_.getCraftServer().getPluginManager().callEvent(event);
 +
 +            if (!event.isCancelled()) {
-+               p_49263_.setSecondsOnFire(event.getDuration(), false);
++               p_49263_.ketting$setSecondsOnFire$callEvent.set(false);
++               p_49263_.setSecondsOnFire(event.getDuration());
 +            }
 +            // CraftBukkit end
           }
        }
  
-@@ -127,21 +_,22 @@
+@@ -127,6 +_,7 @@
        if (!p_49282_.is(p_49279_.getBlock())) {
           if (inPortalDimension(p_49280_)) {
              Optional<PortalShape> optional = PortalShape.findEmptyPortalShape(p_49280_, p_49281_, Direction.Axis.X);
 +            optional = net.minecraftforge.event.ForgeEventFactory.onTrySpawnPortal(p_49280_, p_49281_, optional);
              if (optional.isPresent()) {
--               optional.get().createPortalBlocks();
-+               optional.get().createPortalBlocks_bool();
+                optional.get().createPortalBlocks();
                 return;
-             }
+@@ -134,14 +_,14 @@
           }
  
           if (!p_49279_.canSurvive(p_49280_, p_49281_)) {
