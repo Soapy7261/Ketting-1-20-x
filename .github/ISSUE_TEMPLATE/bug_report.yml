@@ -10,7 +10,7 @@ body:
       options:
         - label: I am actually using ketting, and not any other software (e.g. magma)
         - label: I am using the latest Ketting version at the time of writing for the Minecraft version, that I am using
-        - label: I have confirmed this issue does not happen on normal forge or spigot.
+        - label: I have confirmed this problem does not happen on normal forge or spigot.
         - label: I have provided full server logs and not a crash-report
         - label: I have checked all items without reading. 
         - label: I have provided proper reproduction steps
