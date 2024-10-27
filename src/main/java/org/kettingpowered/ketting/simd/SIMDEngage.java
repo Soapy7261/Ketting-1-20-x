@@ -1,7 +1,6 @@
 package org.kettingpowered.ketting.simd;
 
 public class SIMDEngage {
-
         // Attempt to detect vectorization
         public static void load() {
             try {

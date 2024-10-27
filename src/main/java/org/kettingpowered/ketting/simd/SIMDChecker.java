@@ -33,5 +33,4 @@ public class SIMDChecker {
 		} catch (NoClassDefFoundError | Exception ignored) {} // Basically, we don't do anything. This lets us detect if it's not functional and disable it.
 		return false;
 	}
-
 }
