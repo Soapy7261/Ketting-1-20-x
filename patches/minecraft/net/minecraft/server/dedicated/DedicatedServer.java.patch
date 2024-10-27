@@ -103,7 +103,7 @@
        thread.setDaemon(true);
        thread.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(LOGGER));
        thread.start();
-@@ -109,13 +_,21 @@
+@@ -109,13 +_,22 @@
           this.setPreventProxyConnections(dedicatedserverproperties.preventProxyConnections);
           this.setLocalIp(dedicatedserverproperties.serverIp);
        }
@@ -115,6 +115,7 @@
 +
 +      org.kettingpowered.ketting.inject.ForgeInject.doInjectingMagic(); //Ketting
 +      org.kettingpowered.ketting.command.commands.KettingCommands.registerCommands(this); //Ketting
++      org.kettingpowered.ketting.simd.SIMDEngage.load(); // Pufferfish
  
        this.setPvpAllowed(dedicatedserverproperties.pvp);
        this.setFlightAllowed(dedicatedserverproperties.allowFlight);

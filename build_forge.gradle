@@ -45,6 +45,9 @@ java {
 
 //Ketting Start - fix `./gradlew setup build`
 tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs += [
+            "--add-modules", "jdk.incubator.vector" // This seems like a simple thing, but this took about 8 hours to figure out this is what i needed to add for it to compile.
+    ]
     mustRunAfter 'extractMapped' 
 }
 //Ketting End - fix `./gradlew setup build`
